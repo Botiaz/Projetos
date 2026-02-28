@@ -3,16 +3,9 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### IntelliJ ###
 .idea/
 *.iml
-
-### VS Code ###
 .vscode/
-
-### Logs ###
 *.log
-
-### OS ###
 .DS_Store
 Thumbs.db
