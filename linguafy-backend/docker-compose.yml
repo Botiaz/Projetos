@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    container_name: linguafy-postgres
+    environment:
+      POSTGRES_DB: linguafy
+      POSTGRES_USER: linguafy
+      POSTGRES_PASSWORD: linguafy
+    ports:
+      - "5432:5432"
+    volumes:
+      - linguafy_data:/var/lib/postgresql/data
+
+volumes:
+  linguafy_data:
