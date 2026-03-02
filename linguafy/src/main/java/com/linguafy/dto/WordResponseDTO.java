@@ -1,32 +1,13 @@
-package com.linguafy.entities;
+package com.linguafy.dto;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+public class WordResponseDTO {
 
-@Entity
-@Table(name = "words")
-public class Word {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String word;
     private String translation;
     private String pronunciation;
-
-    @Column(name = "audio_url")
     private String audioUrl;
-
-    @ManyToOne
-    @JoinColumn(name = "category_id")
-    private Category category;
+    private Long categoryId;
 
     public Long getId() {
         return id;
@@ -68,11 +49,11 @@ public class Word {
         this.audioUrl = audioUrl;
     }
 
-    public Category getCategory() {
-        return category;
+    public Long getCategoryId() {
+        return categoryId;
     }
 
-    public void setCategory(Category category) {
-        this.category = category;
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
     }
 }

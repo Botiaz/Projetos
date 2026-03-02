@@ -1,3 +1,27 @@
+server:
+  port: 8080
+
 spring:
   application:
     name: linguafy-backend
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/linguafy
+    username: linguafy
+    password: linguafy
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: false
+    locations: classpath:db/migration
+
+jwt:
+  secret: linguafy-secret-key-12345678901234
+  expiration: 86400000

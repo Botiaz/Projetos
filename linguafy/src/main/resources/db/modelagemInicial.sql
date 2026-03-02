@@ -1,1 +1,2 @@
--- Modelagem inicial do Linguafy
+-- Schema oficial agora está versionado em Flyway:
+-- src/main/resources/db/migration/V1__initial_schema.sql
