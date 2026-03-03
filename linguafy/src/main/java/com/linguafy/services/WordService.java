@@ -18,10 +18,12 @@ public class WordService {
 
     private final WordRepository wordRepository;
     private final CategoryRepository categoryRepository;
+    private final DeepLService deepLService;
 
-    public WordService(WordRepository wordRepository, CategoryRepository categoryRepository) {
+    public WordService(WordRepository wordRepository, CategoryRepository categoryRepository, DeepLService deepLService) {
         this.wordRepository = wordRepository;
         this.categoryRepository = categoryRepository;
+        this.deepLService = deepLService;
     }
 
     public List<WordResponseDTO> findAll() {
@@ -38,9 +40,15 @@ public class WordService {
         Category category = categoryRepository.findById(dto.getCategoryId())
                 .orElseThrow(() -> new EntityNotFoundException("Categoria não encontrada: " + dto.getCategoryId()));
 
+        String translation = dto.getTranslation();
+        if (translation == null || translation.isBlank()) {
+            String sourceLang = category.getLanguage().getCode();
+            translation = deepLService.translate(dto.getWord(), sourceLang, "PT-BR");
+        }
+
         Word word = new Word();
         word.setWord(dto.getWord());
-        word.setTranslation(dto.getTranslation());
+        word.setTranslation(translation);
         word.setPronunciation(dto.getPronunciation());
         word.setAudioUrl(dto.getAudioUrl());
         word.setCategory(category);
