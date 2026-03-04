@@ -25,3 +25,8 @@ spring:
 jwt:
   secret: linguafy-secret-key-12345678901234
   expiration: 86400000
+
+deepl:
+  base-url: ${DEEPL_BASE_URL:https://api-free.deepl.com}
+  api-key: ${DEEPL_API_KEY:}
+  default-target-lang: ${DEEPL_TARGET_LANG:PT-BR}

@@ -15,6 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.linguafy.dto.WordRequestDTO;
 import com.linguafy.dto.WordResponseDTO;
+import com.linguafy.dto.WordTranslateRequestDTO;
+import com.linguafy.dto.WordTranslateResponseDTO;
+import com.linguafy.services.DeepLTranslationService;
 import com.linguafy.services.WordService;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -24,9 +27,11 @@ import jakarta.persistence.EntityNotFoundException;
 public class WordController {
 
     private final WordService wordService;
+    private final DeepLTranslationService deepLTranslationService;
 
-    public WordController(WordService wordService) {
+    public WordController(WordService wordService, DeepLTranslationService deepLTranslationService) {
         this.wordService = wordService;
+        this.deepLTranslationService = deepLTranslationService;
     }
 
     @GetMapping
@@ -47,8 +52,31 @@ public class WordController {
     public ResponseEntity<WordResponseDTO> create(@RequestBody WordRequestDTO dto) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(wordService.create(dto));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().build();
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/translate")
+    public ResponseEntity<WordTranslateResponseDTO> translate(@RequestBody WordTranslateRequestDTO dto) {
+        try {
+            String translatedText = deepLTranslationService.translate(dto.getWord(), dto.getSourceLanguageCode());
+
+            WordTranslateResponseDTO response = new WordTranslateResponseDTO();
+            response.setWord(dto.getWord());
+            response.setSourceLanguageCode(dto.getSourceLanguageCode());
+            response.setTargetLanguageCode(deepLTranslationService.getDefaultTargetLang());
+            response.setTranslation(translatedText);
+
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().build();
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
         }
     }
 
@@ -56,6 +84,10 @@ public class WordController {
     public ResponseEntity<WordResponseDTO> update(@PathVariable Long id, @RequestBody WordRequestDTO dto) {
         try {
             return ResponseEntity.ok(wordService.update(id, dto));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().build();
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.notFound().build();
         }

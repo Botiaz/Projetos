@@ -1,6 +1,7 @@
 package com.linguafy.services;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 
@@ -18,10 +19,14 @@ public class WordService {
 
     private final WordRepository wordRepository;
     private final CategoryRepository categoryRepository;
+    private final DeepLTranslationService deepLTranslationService;
 
-    public WordService(WordRepository wordRepository, CategoryRepository categoryRepository) {
+    public WordService(WordRepository wordRepository,
+            CategoryRepository categoryRepository,
+            DeepLTranslationService deepLTranslationService) {
         this.wordRepository = wordRepository;
         this.categoryRepository = categoryRepository;
+        this.deepLTranslationService = deepLTranslationService;
     }
 
     public List<WordResponseDTO> findAll() {
@@ -29,18 +34,18 @@ public class WordService {
     }
 
     public WordResponseDTO findById(Long id) {
-        Word word = wordRepository.findById(id)
+        Word word = wordRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new EntityNotFoundException("Palavra não encontrada: " + id));
         return toResponse(word);
     }
 
     public WordResponseDTO create(WordRequestDTO dto) {
-        Category category = categoryRepository.findById(dto.getCategoryId())
+        Category category = categoryRepository.findById(Objects.requireNonNull(dto.getCategoryId()))
                 .orElseThrow(() -> new EntityNotFoundException("Categoria não encontrada: " + dto.getCategoryId()));
 
         Word word = new Word();
         word.setWord(dto.getWord());
-        word.setTranslation(dto.getTranslation());
+        word.setTranslation(resolveTranslation(dto, category));
         word.setPronunciation(dto.getPronunciation());
         word.setAudioUrl(dto.getAudioUrl());
         word.setCategory(category);
@@ -50,14 +55,14 @@ public class WordService {
     }
 
     public WordResponseDTO update(Long id, WordRequestDTO dto) {
-        Word word = wordRepository.findById(id)
+        Word word = wordRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new EntityNotFoundException("Palavra não encontrada: " + id));
 
-        Category category = categoryRepository.findById(dto.getCategoryId())
+        Category category = categoryRepository.findById(Objects.requireNonNull(dto.getCategoryId()))
                 .orElseThrow(() -> new EntityNotFoundException("Categoria não encontrada: " + dto.getCategoryId()));
 
         word.setWord(dto.getWord());
-        word.setTranslation(dto.getTranslation());
+        word.setTranslation(resolveTranslation(dto, category));
         word.setPronunciation(dto.getPronunciation());
         word.setAudioUrl(dto.getAudioUrl());
         word.setCategory(category);
@@ -67,9 +72,9 @@ public class WordService {
     }
 
     public void delete(Long id) {
-        Word word = wordRepository.findById(id)
+        Word word = wordRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new EntityNotFoundException("Palavra não encontrada: " + id));
-        wordRepository.delete(word);
+        wordRepository.delete(Objects.requireNonNull(word));
     }
 
     private WordResponseDTO toResponse(Word word) {
@@ -81,5 +86,18 @@ public class WordService {
         dto.setAudioUrl(word.getAudioUrl());
         dto.setCategoryId(word.getCategory().getId());
         return dto;
+    }
+
+    private String resolveTranslation(WordRequestDTO dto, Category category) {
+        if (dto.getTranslation() != null && !dto.getTranslation().isBlank()) {
+            return dto.getTranslation();
+        }
+
+        String sourceLangCode = null;
+        if (category.getLanguage() != null) {
+            sourceLangCode = category.getLanguage().getCode();
+        }
+
+        return deepLTranslationService.translate(dto.getWord(), sourceLangCode);
     }
 }
