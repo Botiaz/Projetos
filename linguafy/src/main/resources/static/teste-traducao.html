@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teste de Tradução - Linguafy</title>
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #f5f7fb;
+            color: #1f2937;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 560px;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            margin: 0 0 20px;
+            font-size: 22px;
+        }
+
+        .field {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        select,
+        input {
+            width: 100%;
+            height: 42px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 0 12px;
+            font-size: 15px;
+            box-sizing: border-box;
+        }
+
+        select:focus,
+        input:focus {
+            outline: 2px solid #2563eb;
+            border-color: #2563eb;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .status {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #4b5563;
+            min-height: 18px;
+        }
+
+        .result {
+            margin-top: 18px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 14px;
+        }
+
+        .result strong {
+            color: #1e3a8a;
+        }
+
+        .error {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <main class="card">
+        <h1>Teste rápido de tradução</h1>
+
+        <div class="field">
+            <label for="languageSelect">1) Selecione o idioma</label>
+            <select id="languageSelect">
+                <option value="">Carregando idiomas...</option>
+            </select>
+            <div id="languageStatus" class="status"></div>
+        </div>
+
+        <div id="wordSection" class="field hidden">
+            <label for="wordInput">2) Escreva a palavra a ser traduzida</label>
+            <input id="wordInput" type="text" placeholder="Ex.: Kopf" autocomplete="off" />
+            <div id="typingStatus" class="status">Digite para traduzir automaticamente.</div>
+        </div>
+
+        <div id="resultBox" class="result hidden">
+            <div><strong>Tradução:</strong> <span id="translationText"></span></div>
+        </div>
+    </main>
+
+    <script>
+        const languageSelect = document.getElementById('languageSelect');
+        const languageStatus = document.getElementById('languageStatus');
+        const wordSection = document.getElementById('wordSection');
+        const wordInput = document.getElementById('wordInput');
+        const typingStatus = document.getElementById('typingStatus');
+        const resultBox = document.getElementById('resultBox');
+        const translationText = document.getElementById('translationText');
+
+        let translateTimer;
+
+        function setResult(text, isError = false) {
+            resultBox.classList.remove('hidden', 'error');
+            if (isError) {
+                resultBox.classList.add('error');
+            }
+            translationText.textContent = text;
+        }
+
+        function clearResult() {
+            resultBox.classList.add('hidden');
+            resultBox.classList.remove('error');
+            translationText.textContent = '';
+        }
+
+        async function loadLanguages() {
+            try {
+                const response = await fetch('/api/languages');
+                if (!response.ok) {
+                    throw new Error('Falha ao carregar idiomas.');
+                }
+
+                const languages = await response.json();
+                languageSelect.innerHTML = '<option value="">Selecione...</option>';
+
+                if (!Array.isArray(languages) || languages.length === 0) {
+                    languageSelect.innerHTML = '<option value="">Nenhum idioma cadastrado</option>';
+                    languageSelect.disabled = true;
+                    languageStatus.textContent = 'Cadastre idiomas antes de testar.';
+                    return;
+                }
+
+                languages.forEach(language => {
+                    const option = document.createElement('option');
+                    option.value = language.code;
+                    option.textContent = `${language.name} (${language.code})`;
+                    languageSelect.appendChild(option);
+                });
+
+                languageStatus.textContent = 'Idioma carregado. Selecione uma opção.';
+            } catch (error) {
+                languageSelect.innerHTML = '<option value="">Erro ao carregar idiomas</option>';
+                languageSelect.disabled = true;
+                languageStatus.textContent = 'Não foi possível buscar os idiomas.';
+            }
+        }
+
+        async function translateWord() {
+            const sourceLanguageCode = languageSelect.value;
+            const word = wordInput.value.trim();
+
+            if (!sourceLanguageCode || !word) {
+                clearResult();
+                return;
+            }
+
+            typingStatus.textContent = 'Traduzindo...';
+
+            try {
+                const response = await fetch('/api/words/translate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ word, sourceLanguageCode })
+                });
+
+                if (!response.ok) {
+                    if (response.status === 503) {
+                        throw new Error('Serviço de tradução indisponível. Verifique a chave do DeepL.');
+                    }
+                    throw new Error('Não foi possível traduzir agora.');
+                }
+
+                const data = await response.json();
+                setResult(data.translation || 'Sem tradução retornada.');
+                typingStatus.textContent = 'Tradução atualizada automaticamente.';
+            } catch (error) {
+                setResult(error.message, true);
+                typingStatus.textContent = 'Falha ao traduzir.';
+            }
+        }
+
+        languageSelect.addEventListener('change', () => {
+            const hasLanguage = !!languageSelect.value;
+            wordSection.classList.toggle('hidden', !hasLanguage);
+            wordInput.value = '';
+            clearResult();
+            if (hasLanguage) {
+                typingStatus.textContent = 'Digite para traduzir automaticamente.';
+                wordInput.focus();
+            }
+        });
+
+        wordInput.addEventListener('input', () => {
+            clearTimeout(translateTimer);
+            const word = wordInput.value.trim();
+
+            if (!word) {
+                clearResult();
+                typingStatus.textContent = 'Digite para traduzir automaticamente.';
+                return;
+            }
+
+            typingStatus.textContent = 'Aguardando digitação...';
+            translateTimer = setTimeout(translateWord, 450);
+        });
+
+        loadLanguages();
+    </script>
+</body>
+</html>

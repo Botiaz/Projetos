@@ -29,16 +29,20 @@ public class WordService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final LanguageRepository languageRepository;
+    private final DeepLTranslationService deepLTranslationService;
 
     public WordService(
             WordRepository wordRepository,
             CategoryRepository categoryRepository,
             UserRepository userRepository,
-            LanguageRepository languageRepository) {
+            LanguageRepository languageRepository,
+            DeepLTranslationService deepLTranslationService) {
+
         this.wordRepository = wordRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
         this.languageRepository = languageRepository;
+        this.deepLTranslationService = deepLTranslationService;
     }
 
     public List<WordResponseDTO> findAll() {
@@ -46,18 +50,18 @@ public class WordService {
     }
 
     public WordResponseDTO findById(Long id) {
-        Word word = wordRepository.findById(id)
+        Word word = wordRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new EntityNotFoundException("Palavra não encontrada: " + id));
         return toResponse(word);
     }
 
     public WordResponseDTO create(WordRequestDTO dto) {
-        Category category = categoryRepository.findById(dto.getCategoryId())
+        Category category = categoryRepository.findById(Objects.requireNonNull(dto.getCategoryId()))
                 .orElseThrow(() -> new EntityNotFoundException("Categoria não encontrada: " + dto.getCategoryId()));
 
         Word word = new Word();
         word.setWord(dto.getWord());
-        word.setTranslation(dto.getTranslation());
+        word.setTranslation(resolveTranslation(dto, category));
         word.setPronunciation(dto.getPronunciation());
         word.setAudioUrl(dto.getAudioUrl());
         word.setCategory(category);
@@ -113,7 +117,8 @@ public class WordService {
         word.setReviewCount(reviews + 1);
         word.setLastDifficulty(dto.getDifficulty());
 
-        if (dto.getDifficulty() != null && dto.getDifficulty().toLowerCase(Locale.ROOT).contains("fácil")) {
+        if (dto.getDifficulty() != null &&
+                dto.getDifficulty().toLowerCase(Locale.ROOT).contains("fácil")) {
             word.setLearnedCount(learned + 1);
         }
 
@@ -123,29 +128,44 @@ public class WordService {
     public TrainingProgressDTO getProgress(String email) {
         List<Word> words = wordRepository.findByUserEmail(email);
 
-        int totalLearned = words.stream().mapToInt(word -> word.getLearnedCount() == null ? 0 : word.getLearnedCount()).sum();
-        int totalReviewed = words.stream().mapToInt(word -> word.getReviewCount() == null ? 0 : word.getReviewCount()).sum();
+        int totalLearned = words.stream()
+                .mapToInt(word -> word.getLearnedCount() == null ? 0 : word.getLearnedCount())
+                .sum();
+
+        int totalReviewed = words.stream()
+                .mapToInt(word -> word.getReviewCount() == null ? 0 : word.getReviewCount())
+                .sum();
+
         int totalWords = words.size();
-        int learnedWords = (int) words.stream().filter(word -> (word.getLearnedCount() == null ? 0 : word.getLearnedCount()) > 0).count();
+
+        int learnedWords = (int) words.stream()
+                .filter(word -> (word.getLearnedCount() == null ? 0 : word.getLearnedCount()) > 0)
+                .count();
+
         int progressPercent = totalWords == 0 ? 0 : (learnedWords * 100) / totalWords;
 
         TrainingProgressDTO dto = new TrainingProgressDTO();
         dto.setTotalLearned(totalLearned);
         dto.setTotalReviewed(totalReviewed);
         dto.setProgressPercent(progressPercent);
-        dto.setEvolution(List.of(Math.max(0, progressPercent - 20), Math.max(0, progressPercent - 10), progressPercent));
+        dto.setEvolution(List.of(
+                Math.max(0, progressPercent - 20),
+                Math.max(0, progressPercent - 10),
+                progressPercent
+        ));
+
         return dto;
     }
 
     public WordResponseDTO update(Long id, WordRequestDTO dto) {
-        Word word = wordRepository.findById(id)
+        Word word = wordRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new EntityNotFoundException("Palavra não encontrada: " + id));
 
-        Category category = categoryRepository.findById(dto.getCategoryId())
+        Category category = categoryRepository.findById(Objects.requireNonNull(dto.getCategoryId()))
                 .orElseThrow(() -> new EntityNotFoundException("Categoria não encontrada: " + dto.getCategoryId()));
 
         word.setWord(dto.getWord());
-        word.setTranslation(dto.getTranslation());
+        word.setTranslation(resolveTranslation(dto, category));
         word.setPronunciation(dto.getPronunciation());
         word.setAudioUrl(dto.getAudioUrl());
         word.setCategory(category);
@@ -155,8 +175,9 @@ public class WordService {
     }
 
     public void delete(Long id) {
-        Word word = wordRepository.findById(id)
+        Word word = wordRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new EntityNotFoundException("Palavra não encontrada: " + id));
+
         wordRepository.delete(word);
     }
 
@@ -173,5 +194,18 @@ public class WordService {
         dto.setLearnedCount(word.getLearnedCount() == null ? 0 : word.getLearnedCount());
         dto.setLastDifficulty(word.getLastDifficulty());
         return dto;
+    }
+
+    private String resolveTranslation(WordRequestDTO dto, Category category) {
+        if (dto.getTranslation() != null && !dto.getTranslation().isBlank()) {
+            return dto.getTranslation();
+        }
+
+        String sourceLangCode = null;
+        if (category.getLanguage() != null) {
+            sourceLangCode = category.getLanguage().getCode();
+        }
+
+        return deepLTranslationService.translate(dto.getWord(), sourceLangCode);
     }
 }
