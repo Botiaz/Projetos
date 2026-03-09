@@ -8,6 +8,10 @@ public class WordResponseDTO {
     private String pronunciation;
     private String audioUrl;
     private Long categoryId;
+    private Long userId;
+    private Integer reviewCount;
+    private Integer learnedCount;
+    private String lastDifficulty;
 
     public Long getId() {
         return id;
@@ -55,5 +59,37 @@ public class WordResponseDTO {
 
     public void setCategoryId(Long categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public Integer getReviewCount() {
+        return reviewCount;
+    }
+
+    public void setReviewCount(Integer reviewCount) {
+        this.reviewCount = reviewCount;
+    }
+
+    public Integer getLearnedCount() {
+        return learnedCount;
+    }
+
+    public void setLearnedCount(Integer learnedCount) {
+        this.learnedCount = learnedCount;
+    }
+
+    public String getLastDifficulty() {
+        return lastDifficulty;
+    }
+
+    public void setLastDifficulty(String lastDifficulty) {
+        this.lastDifficulty = lastDifficulty;
     }
 }

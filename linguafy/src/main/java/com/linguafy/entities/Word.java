@@ -28,6 +28,19 @@ public class Word {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @Column(name = "review_count")
+    private Integer reviewCount = 0;
+
+    @Column(name = "learned_count")
+    private Integer learnedCount = 0;
+
+    @Column(name = "last_difficulty")
+    private String lastDifficulty;
+
     public Long getId() {
         return id;
     }
@@ -74,5 +87,37 @@ public class Word {
 
     public void setCategory(Category category) {
         this.category = category;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public Integer getReviewCount() {
+        return reviewCount;
+    }
+
+    public void setReviewCount(Integer reviewCount) {
+        this.reviewCount = reviewCount;
+    }
+
+    public Integer getLearnedCount() {
+        return learnedCount;
+    }
+
+    public void setLearnedCount(Integer learnedCount) {
+        this.learnedCount = learnedCount;
+    }
+
+    public String getLastDifficulty() {
+        return lastDifficulty;
+    }
+
+    public void setLastDifficulty(String lastDifficulty) {
+        this.lastDifficulty = lastDifficulty;
     }
 }
