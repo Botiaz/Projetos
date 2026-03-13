@@ -4,6 +4,7 @@ public class TrainingReviewRequestDTO {
 
     private Long wordId;
     private String difficulty;
+    private Boolean correct;
 
     public Long getWordId() {
         return wordId;
@@ -19,5 +20,13 @@ public class TrainingReviewRequestDTO {
 
     public void setDifficulty(String difficulty) {
         this.difficulty = difficulty;
+    }
+
+    public Boolean getCorrect() {
+        return correct;
+    }
+
+    public void setCorrect(Boolean correct) {
+        this.correct = correct;
     }
 }

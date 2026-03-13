@@ -115,10 +115,15 @@ public class WordService {
         int learned = word.getLearnedCount() == null ? 0 : word.getLearnedCount();
 
         word.setReviewCount(reviews + 1);
-        word.setLastDifficulty(dto.getDifficulty());
 
-        if (dto.getDifficulty() != null &&
-                dto.getDifficulty().toLowerCase(Locale.ROOT).contains("fácil")) {
+        boolean isCorrect = Boolean.TRUE.equals(dto.getCorrect());
+        if (dto.getCorrect() == null && dto.getDifficulty() != null) {
+            isCorrect = dto.getDifficulty().toLowerCase(Locale.ROOT).contains("fácil");
+        }
+
+        word.setLastDifficulty(isCorrect ? "CORRETA" : "INCORRETA");
+
+        if (isCorrect) {
             word.setLearnedCount(learned + 1);
         }
 

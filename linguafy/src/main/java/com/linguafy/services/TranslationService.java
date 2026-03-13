@@ -1,9 +1,5 @@
 package com.linguafy.services;
 
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-
 import org.springframework.stereotype.Service;
 
 import com.linguafy.dto.TranslateRequestDTO;
@@ -17,24 +13,23 @@ import jakarta.persistence.EntityNotFoundException;
 public class TranslationService {
 
     private final LanguageRepository languageRepository;
+    private final DeepLTranslationService deepLTranslationService;
 
-    public TranslationService(LanguageRepository languageRepository) {
+    public TranslationService(LanguageRepository languageRepository, DeepLTranslationService deepLTranslationService) {
         this.languageRepository = languageRepository;
+        this.deepLTranslationService = deepLTranslationService;
     }
 
     public TranslateResponseDTO translate(TranslateRequestDTO request) {
         Language language = languageRepository.findById(request.getLanguageId())
                 .orElseThrow(() -> new EntityNotFoundException("Idioma não encontrado"));
 
-        Map<String, String> sampleDictionary = new HashMap<>();
-        sampleDictionary.put("hello", "olá");
-        sampleDictionary.put("house", "casa");
-        sampleDictionary.put("book", "livro");
-        sampleDictionary.put("water", "água");
-
         String original = request.getWord() == null ? "" : request.getWord().trim();
-        String normalized = original.toLowerCase(Locale.ROOT);
-        String translated = sampleDictionary.getOrDefault(normalized, original + " (" + language.getName() + ")");
+        if (original.isBlank()) {
+            throw new IllegalArgumentException("Informe uma palavra para traduzir");
+        }
+
+        String translated = deepLTranslationService.translate(original, language.getCode());
 
         TranslateResponseDTO response = new TranslateResponseDTO();
         response.setOriginal(original);

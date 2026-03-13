@@ -11,6 +11,7 @@ function DashboardPage() {
   const [selectedLanguage, setSelectedLanguage] = useState('')
   const [wordInput, setWordInput] = useState('')
   const [translation, setTranslation] = useState('')
+  const [saving, setSaving] = useState(false)
   const [savedWords, setSavedWords] = useState([])
   const [progress, setProgress] = useState({ totalLearned: 0, totalReviewed: 0, progressPercent: 0, evolution: [0, 0, 0] })
   const [error, setError] = useState('')
@@ -38,35 +39,34 @@ function DashboardPage() {
     loadDashboard()
   }, [loadDashboard])
 
-  const canTranslate = useMemo(() => selectedLanguage && wordInput.trim(), [selectedLanguage, wordInput])
-
-  async function handleTranslate() {
-    if (!canTranslate) return
-    setError('')
-    try {
-      const data = await translateWord({ languageId: Number(selectedLanguage), word: wordInput })
-      setTranslation(data.translated)
-    } catch {
-      setError('Não foi possível traduzir a palavra.')
-    }
-  }
+  const canSave = useMemo(() => Boolean(selectedLanguage && wordInput.trim()), [selectedLanguage, wordInput])
 
   async function handleSaveWord() {
-    if (!translation || !selectedLanguage) return
+    if (!canSave) return
+    setSaving(true)
     setError('')
     try {
+      const data = await translateWord({ languageId: Number(selectedLanguage), word: wordInput.trim() })
+      const translatedWord = data.translated || ''
+
+      if (!translatedWord) {
+        throw new Error('Tradução vazia')
+      }
+
       await saveWord({
         languageId: Number(selectedLanguage),
-        word: wordInput,
-        translation,
+        word: wordInput.trim(),
+        translation: translatedWord,
         pronunciation: '',
         audioUrl: '',
       })
+      setTranslation(translatedWord)
       setWordInput('')
-      setTranslation('')
       await loadDashboard()
     } catch {
-      setError('Não foi possível salvar a palavra.')
+      setError('Nao foi possivel traduzir e salvar a palavra.')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -89,11 +89,8 @@ function DashboardPage() {
             onChange={(event) => setWordInput(event.target.value)}
           />
           <div className="actions">
-            <Button type="button" onClick={handleTranslate} disabled={!canTranslate}>
-              Traduzir
-            </Button>
-            <Button type="button" variant="ghost" onClick={handleSaveWord} disabled={!translation}>
-              Salvar Palavra
+            <Button type="button" onClick={handleSaveWord} disabled={!canSave || saving}>
+              {saving ? 'Salvando...' : 'Traduzir e salvar'}
             </Button>
             <Button type="button" variant="ghost" onClick={() => navigate('/treino')}>
               Treinar

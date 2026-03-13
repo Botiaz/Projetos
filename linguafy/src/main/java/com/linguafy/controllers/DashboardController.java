@@ -2,6 +2,7 @@ package com.linguafy.controllers;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,8 +32,12 @@ public class DashboardController {
     }
 
     @PostMapping("/translate")
-    public ResponseEntity<TranslateResponseDTO> translate(@RequestBody TranslateRequestDTO dto) {
-        return ResponseEntity.ok(translationService.translate(dto));
+    public ResponseEntity<?> translate(@RequestBody TranslateRequestDTO dto) {
+        try {
+            return ResponseEntity.ok(translationService.translate(dto));
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
+        }
     }
 
     @PostMapping("/words")

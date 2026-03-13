@@ -4,10 +4,19 @@ import Card from '../components/Card'
 import { getSavedWords } from '../services/dashboardService'
 import { submitReview } from '../services/trainingService'
 
+function normalize(text) {
+  return (text || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+}
+
 function TrainingPage() {
   const [words, setWords] = useState([])
   const [index, setIndex] = useState(0)
-  const [showTranslation, setShowTranslation] = useState(false)
+  const [answer, setAnswer] = useState('')
+  const [result, setResult] = useState(null)
   const [error, setError] = useState('')
 
   async function loadWords() {
@@ -15,7 +24,8 @@ function TrainingPage() {
       const data = await getSavedWords()
       setWords(data)
       setIndex(0)
-      setShowTranslation(false)
+      setAnswer('')
+      setResult(null)
     } catch {
       setError('Não foi possível carregar palavras para treino.')
     }
@@ -25,17 +35,26 @@ function TrainingPage() {
     loadWords()
   }, [])
 
-  async function handleDifficulty(difficulty) {
+  async function handleCheckAnswer() {
     const current = words[index]
-    if (!current) return
+    if (!current || !answer.trim()) return
 
     try {
-      await submitReview({ wordId: current.id, difficulty })
-      setShowTranslation(false)
-      setIndex((prev) => prev + 1)
+      const isCorrect = normalize(answer) === normalize(current.translation)
+      await submitReview({ wordId: current.id, correct: isCorrect })
+      setResult({
+        isCorrect,
+        expected: current.translation,
+      })
     } catch {
       setError('Não foi possível registrar revisão.')
     }
+  }
+
+  function handleNextWord() {
+    setAnswer('')
+    setResult(null)
+    setIndex((prev) => prev + 1)
   }
 
   const currentWord = words[index]
@@ -54,25 +73,27 @@ function TrainingPage() {
       <h2>Treino com Flashcards</h2>
       <p className="flash-word">{currentWord.word}</p>
 
-      {showTranslation ? (
+      {result ? (
         <>
-          <p className="flash-translation">{currentWord.translation}</p>
-          <div className="actions">
-            <Button type="button" onClick={() => handleDifficulty('Fácil')}>
-              Fácil
-            </Button>
-            <Button type="button" variant="ghost" onClick={() => handleDifficulty('Médio')}>
-              Médio
-            </Button>
-            <Button type="button" variant="ghost" onClick={() => handleDifficulty('Difícil')}>
-              Difícil
-            </Button>
-          </div>
+          <p className="flash-translation">Tradução correta: {result.expected}</p>
+          <p>{result.isCorrect ? 'Acertou!' : 'Errou, mas continue treinando.'}</p>
+          <Button type="button" onClick={handleNextWord}>
+            Proxima palavra
+          </Button>
         </>
       ) : (
-        <Button type="button" onClick={() => setShowTranslation(true)}>
-          Mostrar tradução
-        </Button>
+        <>
+          <div className="form">
+            <input
+              placeholder="Digite a tradução"
+              value={answer}
+              onChange={(event) => setAnswer(event.target.value)}
+            />
+          </div>
+          <Button type="button" onClick={handleCheckAnswer} disabled={!answer.trim()}>
+            Verificar resposta
+          </Button>
+        </>
       )}
 
       {error && <p className="error">{error}</p>}
