@@ -1,6 +1,7 @@
 package com.linguafy.services;
 
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.linguafy.dto.AuthLoginRequestDTO;
@@ -15,33 +16,59 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthService(UserRepository userRepository, JwtService jwtService) {
+    public AuthService(UserRepository userRepository, JwtService jwtService, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public AuthResponseDTO register(AuthRegisterRequestDTO dto) {
-        userRepository.findByEmail(dto.getEmail()).ifPresent(existing -> {
+        String email = dto.getEmail() == null ? "" : dto.getEmail().trim().toLowerCase();
+        String password = dto.getPassword() == null ? "" : dto.getPassword().trim();
+        String name = dto.getName() == null ? "" : dto.getName().trim();
+        String level = dto.getLevel() == null ? "" : dto.getLevel().trim();
+
+        if (email.isBlank() || password.isBlank() || name.isBlank()) {
+            throw new IllegalArgumentException("Nome, e-mail e senha são obrigatórios");
+        }
+
+        userRepository.findByEmail(email).ifPresent(existing -> {
             throw new IllegalArgumentException("E-mail já cadastrado");
         });
 
         User user = new User();
-        user.setName(dto.getName());
-        user.setEmail(dto.getEmail());
-        user.setPassword(dto.getPassword());
-        user.setLevel(dto.getLevel());
+        user.setName(name);
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setLevel(level);
 
         User saved = userRepository.save(user);
         return toAuthResponse(saved);
     }
 
     public AuthResponseDTO login(AuthLoginRequestDTO dto) {
-        User user = userRepository.findByEmail(dto.getEmail())
+        String email = dto.getEmail() == null ? "" : dto.getEmail().trim().toLowerCase();
+        String password = dto.getPassword() == null ? "" : dto.getPassword();
+
+        if (email.isBlank() || password.isBlank()) {
+            throw new BadCredentialsException("Credenciais inválidas");
+        }
+
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadCredentialsException("Credenciais inválidas"));
 
-        if (!user.getPassword().equals(dto.getPassword())) {
+        boolean passwordMatches = passwordEncoder.matches(password, user.getPassword());
+        boolean legacyPlainTextMatches = user.getPassword().equals(password);
+
+        if (!passwordMatches && !legacyPlainTextMatches) {
             throw new BadCredentialsException("Credenciais inválidas");
+        }
+
+        if (legacyPlainTextMatches) {
+            user.setPassword(passwordEncoder.encode(password));
+            userRepository.save(user);
         }
 
         return toAuthResponse(user);

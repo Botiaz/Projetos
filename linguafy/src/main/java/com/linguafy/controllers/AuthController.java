@@ -1,5 +1,7 @@
 package com.linguafy.controllers;
 
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -24,20 +26,20 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponseDTO> register(@RequestBody AuthRegisterRequestDTO dto) {
+    public ResponseEntity<?> register(@RequestBody AuthRegisterRequestDTO dto) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(dto));
         } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
         }
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponseDTO> login(@RequestBody AuthLoginRequestDTO dto) {
+    public ResponseEntity<?> login(@RequestBody AuthLoginRequestDTO dto) {
         try {
             return ResponseEntity.ok(authService.login(dto));
         } catch (BadCredentialsException ex) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "E-mail ou senha inválidos"));
         }
     }
 }

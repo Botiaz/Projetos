@@ -23,8 +23,8 @@ function RegisterPage() {
     try {
       await register(form)
       navigate('/dashboard')
-    } catch {
-      setError('Não foi possível concluir o cadastro.')
+    } catch (error) {
+      setError(error.message || 'Nao foi possivel concluir o cadastro.')
     } finally {
       setLoading(false)
     }

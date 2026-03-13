@@ -23,8 +23,8 @@ function LoginPage() {
     try {
       await login(form)
       navigate('/dashboard')
-    } catch {
-      setError('Não foi possível realizar login. Verifique suas credenciais.')
+    } catch (error) {
+      setError(error.message || 'Nao foi possivel realizar login. Verifique suas credenciais.')
     } finally {
       setLoading(false)
     }
