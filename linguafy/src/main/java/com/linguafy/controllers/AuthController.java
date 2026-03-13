@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.linguafy.dto.AuthLoginRequestDTO;
 import com.linguafy.dto.AuthRegisterRequestDTO;
-import com.linguafy.dto.AuthResponseDTO;
 import com.linguafy.services.AuthService;
 
 @RestController

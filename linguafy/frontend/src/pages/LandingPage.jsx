@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom'
 import Button from '../components/Button'
 import Card from '../components/Card'
+import { useAuth } from '../context/AuthContext'
 
 function LandingPage() {
+  const { isAuthenticated } = useAuth()
+
   return (
     <div className="landing">
       <section className="hero">
@@ -12,12 +15,25 @@ function LandingPage() {
           de forma prática e personalizada.
         </p>
         <div className="hero-actions">
-          <Link to="/cadastro">
-            <Button>Criar Conta</Button>
-          </Link>
-          <Link to="/login">
-            <Button variant="ghost">Já Tenho Conta</Button>
-          </Link>
+          {isAuthenticated ? (
+            <>
+              <Link to="/dashboard">
+                <Button>Ir para o Dashboard</Button>
+              </Link>
+              <Link to="/treino">
+                <Button variant="ghost">Continuar Treino</Button>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/cadastro">
+                <Button>Criar Conta</Button>
+              </Link>
+              <Link to="/login">
+                <Button variant="ghost">Ja Tenho Conta</Button>
+              </Link>
+            </>
+          )}
         </div>
       </section>
 
